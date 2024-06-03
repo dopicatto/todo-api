@@ -1,0 +1,63 @@
+service: todo-api
+
+provider:
+  name: aws
+  runtime: nodejs20.x 
+  region: us-east-1
+  stage: dev
+  environment:
+    TODOS_TABLE: ${self:service}-${self:provider.stage}
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "dynamodb:PutItem"
+        - "dynamodb:UpdateItem"
+        - "dynamodb:GetItem"
+        - "dynamodb:DeleteItem"
+        - "dynamodb:Scan"
+      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}"
+
+plugins:
+  - serverless-offline
+
+functions:
+  createTodo:
+    handler: handler.createTodo
+    events:
+      - http:
+          path: todos
+          method: post
+  getTodos:
+    handler: handler.getTodos
+    events:
+      - http:
+          path: todos
+          method: get
+  updateTodo:
+    handler: handler.updateTodo
+    events:
+      - http:
+          path: todos/{id}
+          method: put
+  deleteTodo:
+    handler: handler.deleteTodo
+    events:
+      - http:
+          path: todos/{id}
+          method: delete
+
+resources:
+  Resources:
+    TodosTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.TODOS_TABLE}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
